@@ -19,8 +19,6 @@
 
 package org.archive.io.hbase;
 
-import org.archive.io.ArchiveFileConstants;
-
 /**
  * Configures the values of the column family/qualifier used
  * for the crawl. Also contains a full set of default values that
@@ -43,7 +41,7 @@ import org.archive.io.ArchiveFileConstants;
  *
  * @author greglu
  */
-public class HBaseParameters implements ArchiveFileConstants {
+public class HBaseParameters {
 
     public static final String CONTENT_TABLE_NAME = "content";
     public static final String URL_TABLE_NAME = "url";

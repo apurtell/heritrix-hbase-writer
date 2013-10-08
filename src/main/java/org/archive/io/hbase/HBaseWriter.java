@@ -64,9 +64,7 @@ public class HBaseWriter extends WriterPoolMember {
       super(null, new HBaseWriterPoolSettings(), null);
       this.hbaseOptions = parameters;
       this.contentTable = new HTable(conf, hbaseOptions.getContentTableName());
-      this.contentTable.setAutoFlush(false);
       this.urlTable = new HTable(conf, hbaseOptions.getUrlTableName());
-      this.urlTable.setAutoFlush(false);
     }
 
     public HTable getContentTable() {
