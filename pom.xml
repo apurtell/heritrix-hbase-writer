@@ -81,18 +81,8 @@
 
   <repositories>
     <repository>
-      <id>hadoop-releases</id>
-      <name>Hadoop Releases</name>
-      <url>${hbase-writer.repository-manager.releases}</url>
-    </repository>
-    <repository>
-      <id>hadoop-snapshots</id>
-      <name>Hadoop Snapshots</name>
-      <url>${hbase-writer.repository-manager.snapshots}</url>
-      <snapshots>
-        <enabled>true</enabled>
-        <checksumPolicy>warn</checksumPolicy>
-      </snapshots>
+      <id>apache release</id>
+      <url>https://repository.apache.org/content/repositories/releases/</url>
     </repository>
     <repository>
       <id>archive-releases</id>
@@ -109,14 +99,31 @@
       </snapshots>
     </repository>
     <repository>
+      <id>codehaus</id>
+      <name>Codehaus Public</name>
+      <url>http://repository.codehaus.org/</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </repository>
+    <repository>
       <id>oracle-releases</id>
       <name>Oracle Repository</name>
       <url>http://download.oracle.com/maven</url>
     </repository>
     <repository>
       <id>java.net</id>
-      <name>Java Net Repository</name>
-      <url>http://download.java.net/maven/2</url>
+      <name>Java.Net</name>
+      <url>http://download.java.net/maven/2/</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
     </repository>
   </repositories>
 
@@ -219,17 +226,6 @@
           <artifactId>jmxri</artifactId>
         </exclusion>
       </exclusions>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-client</artifactId>
-      <version>${hadoop.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-annotations</artifactId>
-      <version>${hadoop.version}</version>
     </dependency>
 
     <dependency>
@@ -377,6 +373,101 @@
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <id>hadoop-1.0</id>
+      <activation>
+        <property>
+          <name>!hadoop.profile</name>
+        </property>
+      </activation>
+      <properties>
+        <hadoop.version>1.0.4</hadoop.version>
+      </properties>
+      <dependencies>
+	<dependency>
+	  <groupId>org.apache.hadoop</groupId>
+	  <artifactId>hadoop-core</artifactId>
+	  <version>${hadoop.version}</version>
+	  <exclusions>
+	    <exclusion>
+	      <groupId>hsqldb</groupId>
+	      <artifactId>hsqldb</artifactId>
+	    </exclusion>
+	    <exclusion>
+	      <groupId>net.sf.kosmosfs</groupId>
+	      <artifactId>kfs</artifactId>
+	    </exclusion>
+	    <exclusion>
+	      <groupId>org.eclipse.jdt</groupId>
+	      <artifactId>core</artifactId>
+	    </exclusion>
+	    <exclusion>
+	      <groupId>net.java.dev.jets3t</groupId>
+	      <artifactId>jets3t</artifactId>
+	    </exclusion>
+	    <exclusion>
+	      <groupId>oro</groupId>
+	      <artifactId>oro</artifactId>
+	    </exclusion>
+	  </exclusions>
+	</dependency>
+	<dependency>
+	  <groupId>org.apache.hadoop</groupId>
+	  <artifactId>hadoop-test</artifactId>
+	  <version>${hadoop.version}</version>
+	  <scope>test</scope>
+	</dependency>
+      </dependencies>
+    </profile>
+
+    <profile>
+      <id>hadoop-2.0</id>
+      <activation>
+        <property>
+	  <name>hadoop.profile</name>
+	  <value>2.0</value>
+        </property>
+      </activation>
+      <properties>
+        <hadoop.version>2.0.6-alpha</hadoop.version>
+      </properties>
+      <dependencies>
+	<dependency>
+	  <groupId>org.apache.hadoop</groupId>
+	  <artifactId>hadoop-hdfs</artifactId>
+	  <version>${hadoop.version}</version>
+	</dependency>
+	<dependency>
+	  <groupId>org.apache.hadoop</groupId>
+	  <artifactId>hadoop-hdfs</artifactId>
+	  <version>${hadoop.version}</version>
+	  <type>test-jar</type>
+	</dependency>
+	<dependency>
+	  <groupId>org.apache.hadoop</groupId>
+	  <artifactId>hadoop-auth</artifactId>
+	  <version>${hadoop.version}</version>
+	</dependency>
+	<dependency>
+	  <groupId>org.apache.hadoop</groupId>
+	  <artifactId>hadoop-common</artifactId>
+	  <version>${hadoop.version}</version>
+	</dependency>
+	<dependency>
+	  <groupId>org.apache.hadoop</groupId>
+	  <artifactId>hadoop-client</artifactId>
+	  <version>${hadoop.version}</version>
+	</dependency>
+	<dependency>
+	  <groupId>org.apache.hadoop</groupId>
+	  <artifactId>hadoop-annotations</artifactId>
+	  <version>${hadoop.version}</version>
+	</dependency>
+      </dependencies>
+    </profile>
+  </profiles>
+
   <reporting>
     <plugins>
       <!-- <plugin> <artifactId>maven-changelog-plugin</artifactId> </plugin> -->
@@ -482,8 +573,6 @@
   </reporting>
   <properties>
     <!-- Project variables -->
-    <hbase-writer.repository-manager.releases>http://repo1.opensourcemasters.org:8081/nexus/content/groups/public</hbase-writer.repository-manager.releases>
-    <hbase-writer.repository-manager.snapshots>http://repo1.opensourcemasters.org:8081/nexus/content/groups/public-snapshots</hbase-writer.repository-manager.snapshots>
 
     <hbase-writer.distribution-manager.releases>http://repo1.opensourcemasters.org:8081/nexus/content/repositories/releases/</hbase-writer.distribution-manager.releases>
     <hbase-writer.distribution-manager.snapshots>http://repo1.opensourcemasters.org:8081/nexus/content/repositories/snapshots/</hbase-writer.distribution-manager.snapshots>
@@ -499,8 +588,8 @@
     <compileSource>1.5</compileSource>
      
     <!-- HBase dependencies -->
-    <hadoop.version>2.0.4-SNAPSHOT</hadoop.version>
-    <hbase.version>0.95-SNAPSHOT</hbase.version>
+    <hadoop.version>1.0.4</hadoop.version>
+    <hbase.version>0.94.12</hbase.version>
     <zookeeper.version>3.4.5</zookeeper.version>
     <log4j.version>1.2.15</log4j.version>
     <!-- End of HBase dependencies -->
