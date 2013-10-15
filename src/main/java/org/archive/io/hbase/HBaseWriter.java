@@ -27,12 +27,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.logging.LogFactory;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -44,6 +46,7 @@ import org.archive.io.RecordingInputStream;
 import org.archive.io.RecordingOutputStream;
 import org.archive.io.ReplayInputStream;
 import org.archive.io.WriterPoolMember;
+import org.archive.io.WriterPoolSettings;
 import org.archive.modules.CrawlURI;
 
 import com.codahale.metrics.MetricRegistry;
@@ -71,18 +74,19 @@ public class HBaseWriter extends WriterPoolMember {
         .start(1, TimeUnit.MINUTES);
     }
 
-    /**
-     * Instantiates a new HBaseWriter for the WriterPool
-     * @throws IOException Signals that an I/O exception has occurred.
-     */
-    public HBaseWriter(final Configuration conf, final HBaseParameters parameters)
-        throws IOException {
-      super(null, new HBaseWriterPoolSettings(), null);
+    public HBaseWriter(AtomicInteger serialNo, final WriterPoolSettings settings,
+        HBaseParameters parameters) throws IOException {
+      super(serialNo, settings, null);
       this.hbaseOptions = parameters;
-      this.contentTable = new MetricsHTable(metricRegistry, new HTable(conf,
-        hbaseOptions.getContentTableName()));
-      this.urlTable = new MetricsHTable(metricRegistry, new HTable(conf,
-        hbaseOptions.getUrlTableName()));
+      Configuration hbaseConfiguration = HBaseConfiguration.create();
+      hbaseConfiguration.setStrings(HConstants.ZOOKEEPER_QUORUM,
+        hbaseOptions.getZkQuorum().split(","));
+      hbaseConfiguration.setInt(hbaseOptions.getZookeeperClientPortKey(),
+        hbaseOptions.getZkPort());
+      this.contentTable = new MetricsHTable(metricRegistry,
+        new HTable(hbaseConfiguration, hbaseOptions.getContentTableName()));
+      this.urlTable = new MetricsHTable(metricRegistry,
+        new HTable(hbaseConfiguration, hbaseOptions.getUrlTableName()));
     }
 
     public HTableInterface getContentTable() {

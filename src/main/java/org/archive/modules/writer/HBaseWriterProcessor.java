@@ -12,13 +12,15 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.archive.modules.writer.WriterPoolProcessor;
 import org.archive.io.ReplayInputStream;
-import org.archive.io.WriterPoolMember;
+import org.archive.io.WriterPool;
 import org.archive.io.hbase.HBaseParameters;
 import org.archive.io.hbase.HBaseWriter;
 import org.archive.io.hbase.HBaseWriterPool;
+import org.archive.io.warc.WARCWriterPoolSettings;
 import org.archive.modules.CrawlURI;
 import org.archive.modules.ProcessResult;
 import org.archive.spring.ConfigPath;
+import org.archive.uid.RecordIDGenerator;
 import org.archive.util.ArchiveUtils;
 
 /**
@@ -38,7 +40,6 @@ import org.archive.util.ArchiveUtils;
  * <bean id="hbaseWriterProcessor" class="org.archive.modules.writer.HBaseWriterProcessor">
  *   <property name="zkQuorum" value="localhost" />
  *   <property name="zkClientPort" value="2181" />
- *   <property name="hbaseTable" value="crawl" />
  *   <property name="hbaseParameters">
  *     <bean ref="hbaseParameterSettings" />
  *   </property>
@@ -62,7 +63,7 @@ import org.archive.util.ArchiveUtils;
  * 
  * @author greg
  */
-public class HBaseWriterProcessor extends WriterPoolProcessor {
+public class HBaseWriterProcessor extends WriterPoolProcessor implements WARCWriterPoolSettings{
 
   private final Logger LOG = Logger.getLogger(this.getClass().getName());
 
@@ -141,8 +142,12 @@ public class HBaseWriterProcessor extends WriterPoolProcessor {
 
   @Override
   protected void setupPool(AtomicInteger serial) {
-    setPool(new HBaseWriterPool(serial, getZkQuorum(), getZkClientPort(),
-        getHbaseParameters(), getPoolMaxActive(), getMaxWaitForIdleMs()));
+    setPool(generateWriterPool(serial));
+  }
+  
+  protected WriterPool generateWriterPool(AtomicInteger serial) {
+    return new HBaseWriterPool(serial, this, getPoolMaxActive(),
+      getMaxWaitForIdleMs(), this.hbaseParameters);
   }
 
   @Override
@@ -182,7 +187,11 @@ public class HBaseWriterProcessor extends WriterPoolProcessor {
     // If onlyProcessNewRecords is enabled and the given rowkey has cell data,
     // don't write the record.
     if (onlyProcessNewRecords()) {
-      return isRecordNew(curi);
+      try {
+        return isRecordNew(curi);
+      } catch (IOException e) {
+        LOG.error("Failed to determine if record is new", e);
+      }
     }
 
     // If we make it here, then we passed all our checks and we can assume
@@ -227,20 +236,15 @@ public class HBaseWriterProcessor extends WriterPoolProcessor {
    *          the curi
    * 
    * @return true, if checks if is record new
+   * @throws IOException 
    */
-  private boolean isRecordNew(CrawlURI curi) {
-    WriterPoolMember writerPoolMember;
-    try {
-      writerPoolMember = getPool().borrowFile();
-    } catch (IOException e1) {
-      LOG.error("No writer could be borrowed from the pool: "
-          + getPool().toString() + " - exception is: \n" + e1.getMessage());
-      return false;
-    }
+  private boolean isRecordNew(CrawlURI curi) throws IOException {
+    // get the writer from the pool
+    HBaseWriter hbaseWriter = (HBaseWriter) getPool().borrowFile();
     String url = curi.toString();
     byte[] rowKey = HBaseWriter.createURLKey(url);
     try {
-      HTableInterface urlTable = ((HBaseWriter) writerPoolMember).getUrlTable();
+      HTableInterface urlTable = hbaseWriter.getUrlTable();
       // Here we can generate the rowkey for this uri ...
       // and look it up to see if it already exists...
       if (urlTable.exists(new Get(rowKey))) {
@@ -259,7 +263,7 @@ public class HBaseWriterProcessor extends WriterPoolProcessor {
       return false;
     } finally {
       try {
-        getPool().returnFile(writerPoolMember);
+        getPool().returnFile(hbaseWriter);
       } catch (IOException e) {
         LOG.error("Failed to add back writer to the pool after checking if a rowkey is new or existing: "
             + Bytes.toStringBinary(rowKey) + "\n" + e.getMessage());
@@ -286,18 +290,30 @@ public class HBaseWriterProcessor extends WriterPoolProcessor {
    */
   protected ProcessResult write(final CrawlURI curi, long recordLength,
       InputStream in) throws IOException {
-    WriterPoolMember writerPoolMember = getPool().borrowFile();
-    long writerPoolMemberPosition = writerPoolMember.getPosition();
-    HBaseWriter hbaseWriter = (HBaseWriter) writerPoolMember;
+    // grab the writer from the pool
+    HBaseWriter hbaseWriter = (HBaseWriter) getPool().borrowFile();
+    // get the member position for logging Total Bytes Written
+    long writerPoolMemberPosition = hbaseWriter.getPosition();
     try {
-      hbaseWriter.write(curi, getHostAddress(curi), curi.getRecorder()
-          .getRecordedOutput(), curi.getRecorder().getRecordedInput());
+      // write the crawled data to hbase
+      hbaseWriter.write(curi, getHostAddress(curi),
+        curi.getRecorder().getRecordedOutput(),
+        curi.getRecorder().getRecordedInput());
     } finally {
-      setTotalBytesWritten(getTotalBytesWritten()
-          + (writerPoolMember.getPosition() - writerPoolMemberPosition));
-      getPool().returnFile(writerPoolMember);
+      // log total bytes written
+      setTotalBytesWritten(getTotalBytesWritten() +
+        (hbaseWriter.getPosition() - writerPoolMemberPosition));
+      // return the hbaseWriter client back to the pool.
+      getPool().returnFile(hbaseWriter);
     }
+    // to alert heritrix what action to take next in the crawl
     return checkBytesWritten();
+  }
+
+  @Override
+  public RecordIDGenerator getRecordIDGenerator() {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

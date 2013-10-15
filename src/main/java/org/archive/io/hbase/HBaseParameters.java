@@ -63,8 +63,11 @@ public class HBaseParameters {
     public static final String STATUS_COLUMN_NAME = "s";
     public static final String SOURCE_TAG_COLUMN_NAME = "st";
 
-    // the zk client port name, this has to match what is in hbase-site.xml for the clientPort config attribute.
-    public static String ZOOKEEPER_CLIENT_PORT = "hbase.zookeeper.property.clientPort";
+    /** The ZOOKEEPER client port. */
+    public static final String ZOOKEEPER_CLIENT_PORT = "hbase.zookeeper.property.clientPort";
+
+    private String zkQuorum = "localhost";
+    private int zkPort = 2181;
 
     private String contentTableName = CONTENT_TABLE_NAME;
     private String urlTableName = URL_TABLE_NAME;
@@ -83,6 +86,26 @@ public class HBaseParameters {
     private String hashColumnName = HASH_COLUMN_NAME;
     private String statusColumnName = STATUS_COLUMN_NAME;
     private String sourceTagColumnName = SOURCE_TAG_COLUMN_NAME;
+
+    public String getZkQuorum() {
+      return zkQuorum;
+    }
+
+    public void setZkQuorum(String quorum) {
+      zkQuorum = quorum;
+    }
+
+    public int getZkPort() {
+      return zkPort;
+    }
+
+    public void setZkPort(int port) {
+      zkPort = port;
+    }
+
+    public String getZookeeperClientPortKey() {
+      return ZOOKEEPER_CLIENT_PORT;
+    }
 
     public String getContentTableName() {
       return contentTableName;
