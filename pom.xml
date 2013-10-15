@@ -236,6 +236,12 @@
     </dependency>
 
     <dependency>
+      <groupId>com.codahale.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+      <version>${metrics.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>
       <version>${springframework.version}</version>
@@ -625,9 +631,9 @@
     <!-- Hadoop and hbase both require Java6 to run -->
     <jdk.version>1.6</jdk.version>
     <compileSource>1.5</compileSource>
-     
     <zookeeper.version>3.4.5</zookeeper.version>
     <log4j.version>1.2.15</log4j.version>
+	<metrics.version>3.0.0</metrics.version>
 
     <!-- Heritrix3 dependencies, check the heritrix lib/ folder if any are missing. -->
     <heritrix.version>3.1.2-SNAPSHOT</heritrix.version>

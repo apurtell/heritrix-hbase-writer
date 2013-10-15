@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.archive.modules.writer.WriterPoolProcessor;
@@ -240,7 +240,7 @@ public class HBaseWriterProcessor extends WriterPoolProcessor {
     String url = curi.toString();
     byte[] rowKey = HBaseWriter.createURLKey(url);
     try {
-      HTable urlTable = ((HBaseWriter) writerPoolMember).getUrlTable();
+      HTableInterface urlTable = ((HBaseWriter) writerPoolMember).getUrlTable();
       // Here we can generate the rowkey for this uri ...
       // and look it up to see if it already exists...
       if (urlTable.exists(new Get(rowKey))) {

@@ -26,12 +26,16 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.commons.logging.LogFactory;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.IOUtils;
@@ -42,36 +46,50 @@ import org.archive.io.ReplayInputStream;
 import org.archive.io.WriterPoolMember;
 import org.archive.modules.CrawlURI;
 
+import com.codahale.metrics.MetricRegistry;
+
 /**
  * HBase implementation.
  */
 public class HBaseWriter extends WriterPoolMember {
   
     private HBaseParameters hbaseOptions;
-    private final HTable contentTable;
-    private final HTable urlTable;
+    private final HTableInterface contentTable;
+    private final HTableInterface urlTable;
 
     private static final Pattern URI_RE_PARSER =
       Pattern.compile("^([^:/?#]+://(?:[^/?#@]+@)?)([^:/?#]+)(.*)$");
 
-    /**
-     * Instantiates a new HBaseWriter for the WriterPool
-     * 
-     * @throws IOException Signals that an I/O exception has occurred.
-     */
-    public HBaseWriter(final Configuration conf, 
-        final HBaseParameters parameters) throws IOException {
-      super(null, new HBaseWriterPoolSettings(), null);
-      this.hbaseOptions = parameters;
-      this.contentTable = new HTable(conf, hbaseOptions.getContentTableName());
-      this.urlTable = new HTable(conf, hbaseOptions.getUrlTableName());
+    private static final MetricRegistry metricRegistry = new MetricRegistry();
+    static {
+      MetricsLogReporter
+        .forRegistry(metricRegistry)
+        .outputTo(LogFactory.getLog(HBaseWriter.class))
+        .convertRatesTo(TimeUnit.SECONDS)
+        .convertDurationsTo(TimeUnit.MILLISECONDS)
+        .build()
+        .start(1, TimeUnit.MINUTES);
     }
 
-    public HTable getContentTable() {
+    /**
+     * Instantiates a new HBaseWriter for the WriterPool
+     * @throws IOException Signals that an I/O exception has occurred.
+     */
+    public HBaseWriter(final Configuration conf, final HBaseParameters parameters)
+        throws IOException {
+      super(null, new HBaseWriterPoolSettings(), null);
+      this.hbaseOptions = parameters;
+      this.contentTable = new MetricsHTable(metricRegistry, new HTable(conf,
+        hbaseOptions.getContentTableName()));
+      this.urlTable = new MetricsHTable(metricRegistry, new HTable(conf,
+        hbaseOptions.getUrlTableName()));
+    }
+
+    public HTableInterface getContentTable() {
       return contentTable;
     }
 
-    public HTable getUrlTable() {
+    public HTableInterface getUrlTable() {
       return urlTable;
     }
 
