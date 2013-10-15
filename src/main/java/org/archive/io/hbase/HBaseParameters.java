@@ -19,6 +19,8 @@
 
 package org.archive.io.hbase;
 
+import java.util.regex.Pattern;
+
 /**
  * Configures the values of the column family/qualifier used
  * for the crawl. Also contains a full set of default values that
@@ -86,6 +88,8 @@ public class HBaseParameters {
     private String hashColumnName = HASH_COLUMN_NAME;
     private String statusColumnName = STATUS_COLUMN_NAME;
     private String sourceTagColumnName = SOURCE_TAG_COLUMN_NAME;
+
+    private Pattern secretUriPattern;
 
     public String getZkQuorum() {
       return zkQuorum;
@@ -229,5 +233,13 @@ public class HBaseParameters {
 
     public String getZookeeperClientPort() {
       return ZOOKEEPER_CLIENT_PORT;
+    }
+
+    public Pattern getSecretUriPattern() {
+      return secretUriPattern;
+    }
+
+    public void setSecretUriPattern(String secretUriPattern) {
+      this.secretUriPattern = Pattern.compile(secretUriPattern);
     }
 }

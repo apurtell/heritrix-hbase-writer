@@ -36,6 +36,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.Authorization;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
@@ -62,6 +63,9 @@ public class HBaseWriter extends WriterPoolMember {
 
     private static final Pattern URI_RE_PARSER =
       Pattern.compile("^([^:/?#]+://(?:[^/?#@]+@)?)([^:/?#]+)(.*)$");
+
+    // XXX: Only works with HBASE-7663
+    private static final Authorization SECRET = new Authorization("secret");
 
     private static final MetricRegistry metricRegistry = new MetricRegistry();
     static {
@@ -111,6 +115,12 @@ public class HBaseWriter extends WriterPoolMember {
     public void write(final CrawlURI curi, final String ip, final RecordingOutputStream recordingOutputStream, 
             final RecordingInputStream recordingInputStream) throws IOException {
         String url = curi.toString();
+
+        boolean isSecret = false;
+        Pattern pattern = hbaseOptions.getSecretUriPattern();
+        if (pattern != null && pattern.matcher(url).find()) {
+          isSecret = true;
+        }
 
         byte[] rowKey = HBaseWriter.createURLKey(url);
 
@@ -215,8 +225,13 @@ public class HBaseWriter extends WriterPoolMember {
 
             List<Put> puts = new ArrayList<Put>(2);
 
-            puts.add(new Put(hashKey).add(curiFamily, rowKey,
-                HConstants.EMPTY_BYTE_ARRAY)); // store something useful?
+            Put put =new Put(hashKey).add(curiFamily, rowKey,
+              HConstants.EMPTY_BYTE_ARRAY); // store something useful?
+            if (isSecret) {
+              // XXX: Only works with HBASE-7663
+              put.setAuthorization(SECRET);
+            }
+            puts.add(put);
 
             byte[] contentQualifier =
                 Bytes.toBytes(hbaseOptions.getContentColumnName());
@@ -228,14 +243,24 @@ public class HBaseWriter extends WriterPoolMember {
                        HConstants.EMPTY_BYTE_ARRAY))) {
               // and follow up with a (write buffered) store of the real
               // content
-              puts.add(new Put(hashKey).add(contentFamily, contentQualifier,
-                  content));
+              put = new Put(hashKey).add(contentFamily, contentQualifier,
+                content);
+              if (isSecret) {
+                // XXX: Only works with HBASE-7663
+                put.setAuthorization(SECRET);
+              }
+              puts.add(put);
             }
 
             contentTable.put(puts);
           }
         } finally {
           IOUtils.closeStream(response);
+        }
+
+        if (isSecret) {
+          // XXX: Only works with HBASE-7663
+          curiPut.setAuthorization(SECRET);
         }
 
         urlTable.put(curiPut);
