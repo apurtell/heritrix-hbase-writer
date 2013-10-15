@@ -50,6 +50,7 @@ import org.archive.io.WriterPoolMember;
 import org.archive.io.WriterPoolSettings;
 import org.archive.modules.CrawlURI;
 
+import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 
 /**
@@ -69,9 +70,10 @@ public class HBaseWriter extends WriterPoolMember {
 
     private static final MetricRegistry metricRegistry = new MetricRegistry();
     static {
-      MetricsLogReporter
+      ConsoleReporter
         .forRegistry(metricRegistry)
-        .outputTo(LogFactory.getLog(HBaseWriter.class))
+        //.outputTo(LogFactory.getLog(HBaseWriter.class))
+        .outputTo(System.err)
         .convertRatesTo(TimeUnit.SECONDS)
         .convertDurationsTo(TimeUnit.MILLISECONDS)
         .build()
