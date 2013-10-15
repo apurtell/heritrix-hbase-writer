@@ -237,6 +237,7 @@ public class HBaseWriter extends WriterPoolMember {
 
             byte[] contentQualifier =
                 Bytes.toBytes(hbaseOptions.getContentColumnName());
+/*
             // if existence check fails, store an placeholder atomically
             if (contentTable.checkAndPut(hashKey, contentFamily,
                   contentQualifier, null,
@@ -245,14 +246,17 @@ public class HBaseWriter extends WriterPoolMember {
                        HConstants.EMPTY_BYTE_ARRAY))) {
               // and follow up with a (write buffered) store of the real
               // content
-              put = new Put(hashKey).add(contentFamily, contentQualifier,
+*/
+            put = new Put(hashKey).add(contentFamily, contentQualifier,
                 content);
               if (isSecret) {
                 // XXX: Only works with HBASE-7663
                 put.setAuthorization(SECRET);
               }
               puts.add(put);
+/*
             }
+*/
 
             contentTable.put(puts);
           }
